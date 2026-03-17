@@ -1,5 +1,8 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 import httpx
 
@@ -17,11 +20,14 @@ from database import log_prediction, get_history
 
 load_dotenv()
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Turn3 F1 Predictor API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://localhost:\d+",  # any localhost port (dev)
+    allow_origin_regex=r"http://localhost:\d+|https://.*\.vercel\.app|https://turn3predictor\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -81,7 +87,9 @@ def get_recent_results(n: int = Query(default=5, ge=1, le=10)):
 
 
 @app.get("/predict/{circuit_id}")
+@limiter.limit("10/hour")
 def predict(
+    request: Request,
     circuit_id: str,
     weather: str = Query(default="dry", pattern="^(dry|wet|mixed)$"),
 ):

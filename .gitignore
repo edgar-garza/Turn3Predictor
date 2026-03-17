@@ -10,7 +10,9 @@ frontend/dist/
 
 # Env files
 .env
-*.env
+backend/.env
+frontend/.env.development
+# .env.production is committed as a placeholder — real value set in Vercel dashboard
 
 # OS
 .DS_Store
