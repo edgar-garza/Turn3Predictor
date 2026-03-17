@@ -10,6 +10,8 @@ const POSITION_STYLES = {
   P1: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/40', text: 'text-yellow-400' },
   P2: { bg: 'bg-zinc-400/10',   border: 'border-zinc-400/40',   text: 'text-zinc-300'  },
   P3: { bg: 'bg-orange-700/10', border: 'border-orange-700/40', text: 'text-orange-400' },
+  P4: { bg: 'bg-teal-500/10',   border: 'border-teal-500/30',   text: 'text-teal-400'  },
+  P5: { bg: 'bg-violet-500/10', border: 'border-violet-500/30', text: 'text-violet-400' },
 }
 
 function ConfidenceBadge({ score }) {
@@ -208,7 +210,7 @@ export default function PredictionCard({ prediction, circuitId }) {
 
       {/* Podium */}
       <div className="flex flex-col gap-2 sm:gap-3">
-        {['P1', 'P2', 'P3'].map(pos => (
+        {['P1', 'P2', 'P3', 'P4', 'P5'].filter(pos => podium[pos]).map(pos => (
           <PodiumSlot key={pos} position={pos} driver={podium[pos]} />
         ))}
       </div>

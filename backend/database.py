@@ -51,13 +51,18 @@ def get_cached_prediction(
     if not rows:
         return None
     row = rows[0]
+    podium = {
+        "P1": {"driver": row["p1_driver"], "code": row["p1_code"], "constructor": row["p1_constructor"]},
+        "P2": {"driver": row["p2_driver"], "code": row["p2_code"], "constructor": row["p2_constructor"]},
+        "P3": {"driver": row["p3_driver"], "code": row["p3_code"], "constructor": row["p3_constructor"]},
+    }
+    if row.get("p4_driver"):
+        podium["P4"] = {"driver": row["p4_driver"], "code": row["p4_code"], "constructor": row["p4_constructor"]}
+    if row.get("p5_driver"):
+        podium["P5"] = {"driver": row["p5_driver"], "code": row["p5_code"], "constructor": row["p5_constructor"]}
     return {
         "race": row["race_name"],
-        "podium": {
-            "P1": {"driver": row["p1_driver"], "code": row["p1_code"], "constructor": row["p1_constructor"]},
-            "P2": {"driver": row["p2_driver"], "code": row["p2_code"], "constructor": row["p2_constructor"]},
-            "P3": {"driver": row["p3_driver"], "code": row["p3_code"], "constructor": row["p3_constructor"]},
-        },
+        "podium": podium,
         "confidence": row["confidence"],
         "reasoning": row["reasoning"],
         "cached": True,
@@ -93,6 +98,12 @@ def log_prediction(
         "p3_driver": podium["P3"]["driver"],
         "p3_code": podium["P3"]["code"],
         "p3_constructor": podium["P3"]["constructor"],
+        "p4_driver": podium.get("P4", {}).get("driver"),
+        "p4_code": podium.get("P4", {}).get("code"),
+        "p4_constructor": podium.get("P4", {}).get("constructor"),
+        "p5_driver": podium.get("P5", {}).get("driver"),
+        "p5_code": podium.get("P5", {}).get("code"),
+        "p5_constructor": podium.get("P5", {}).get("constructor"),
         "confidence": prediction["confidence"],
         "reasoning": prediction["reasoning"],
         "round_count": round_count,
@@ -189,6 +200,8 @@ def get_history(season: int = 2026) -> list[dict]:
                 "P1": {"driver": pred["p1_driver"], "code": pred["p1_code"], "constructor": pred["p1_constructor"]},
                 "P2": {"driver": pred["p2_driver"], "code": pred["p2_code"], "constructor": pred["p2_constructor"]},
                 "P3": {"driver": pred["p3_driver"], "code": pred["p3_code"], "constructor": pred["p3_constructor"]},
+                **({"P4": {"driver": pred["p4_driver"], "code": pred["p4_code"], "constructor": pred["p4_constructor"]}} if pred.get("p4_driver") else {}),
+                **({"P5": {"driver": pred["p5_driver"], "code": pred["p5_code"], "constructor": pred["p5_constructor"]}} if pred.get("p5_driver") else {}),
             },
             "confidence": pred["confidence"],
             "reasoning": pred["reasoning"],

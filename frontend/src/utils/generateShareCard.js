@@ -7,6 +7,8 @@ const POSITION_COLORS = {
   P1: { bg: '#78350f', border: '#d97706', label: '#fbbf24' },
   P2: { bg: '#1f2937', border: '#6b7280', label: '#d1d5db' },
   P3: { bg: '#431407', border: '#b45309', label: '#f97316' },
+  P4: { bg: '#134e4a', border: '#0d9488', label: '#5eead4' },
+  P5: { bg: '#2e1065', border: '#7c3aed', label: '#c4b5fd' },
 }
 
 function hexToRgba(hex, alpha) {
@@ -96,6 +98,7 @@ export async function generateShareCard(prediction, votes) {
     confidence >= 8 ? '#4ade80' :
     confidence >= 5 ? '#facc15' : '#f87171'
 
+  const positionCount = ['P1', 'P2', 'P3', 'P4', 'P5'].filter(p => podium[p]).length
   const total = (votes?.agree || 0) + (votes?.disagree || 0)
   const hasVotes = total > 0
   const agreePct = hasVotes ? Math.round((votes.agree / total) * 100) : 0
@@ -118,7 +121,7 @@ export async function generateShareCard(prediction, votes) {
   H += 8               // gap
   H += 48              // race name
   H += 24              // gap
-  H += 3 * 72 + 2 * 10 // podium rows + gaps
+  H += positionCount * 72 + (positionCount - 1) * 10 // podium rows + gaps
   H += 28              // gap
   H += analysisBoxH
   H += 24              // gap
@@ -194,8 +197,9 @@ export async function generateShareCard(prediction, votes) {
   y += 48 + 24
 
   // ── Podium rows ────────────────────────────────────────────────────────
-  for (let i = 0; i < 3; i++) {
-    const pos = ['P1', 'P2', 'P3'][i]
+  const positions = ['P1', 'P2', 'P3', 'P4', 'P5'].filter(p => podium[p])
+  for (let i = 0; i < positions.length; i++) {
+    const pos = positions[i]
     const c = POSITION_COLORS[pos]
     const driver = podium[pos]
     const rH = 72
@@ -251,7 +255,7 @@ export async function generateShareCard(prediction, votes) {
     ctx.fillText(driver.code, cbX + cbW / 2, mid)
 
     y += rH
-    if (i < 2) y += 10
+    if (i < positions.length - 1) y += 10
   }
 
   y += 28

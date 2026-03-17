@@ -54,6 +54,14 @@ alter table predictions add column if not exists round_count int not null defaul
 create unique index if not exists predictions_cache_idx
   on predictions (circuit_id, weather, season, round_count);
 
+-- Add P4 and P5 prediction columns (nullable for backward compat with old rows)
+alter table predictions add column if not exists p4_driver text;
+alter table predictions add column if not exists p4_code text;
+alter table predictions add column if not exists p4_constructor text;
+alter table predictions add column if not exists p5_driver text;
+alter table predictions add column if not exists p5_code text;
+alter table predictions add column if not exists p5_constructor text;
+
 -- Stores agree/disagree votes per circuit per season (one per IP)
 create table if not exists votes (
   id            uuid primary key default gen_random_uuid(),
