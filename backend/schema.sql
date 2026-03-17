@@ -46,6 +46,14 @@ create table if not exists results (
 -- Unique constraint so each race only has one result entry
 create unique index if not exists results_season_round_idx on results (season, round);
 
+-- Add round_count to predictions for cache invalidation
+-- round_count = number of completed races at time of prediction
+alter table predictions add column if not exists round_count int not null default 0;
+
+-- Unique constraint: one cached prediction per circuit+weather+season+round_count
+create unique index if not exists predictions_cache_idx
+  on predictions (circuit_id, weather, season, round_count);
+
 -- Stores agree/disagree votes per circuit per season (one per IP)
 create table if not exists votes (
   id            uuid primary key default gen_random_uuid(),

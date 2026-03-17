@@ -26,6 +26,44 @@ def get_client() -> Client:
 
 # ── Predictions ───────────────────────────────────────────────────────────────
 
+def get_cached_prediction(
+    circuit_id: str,
+    weather: str,
+    season: int,
+    round_count: int,
+) -> dict | None:
+    """
+    Return a cached prediction if one exists for this circuit+weather+season+round_count.
+    Returns None if no cache hit.
+    """
+    rows = (
+        get_client()
+        .table("predictions")
+        .select("*")
+        .eq("circuit_id", circuit_id)
+        .eq("weather", weather)
+        .eq("season", season)
+        .eq("round_count", round_count)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not rows:
+        return None
+    row = rows[0]
+    return {
+        "race": row["race_name"],
+        "podium": {
+            "P1": {"driver": row["p1_driver"], "code": row["p1_code"], "constructor": row["p1_constructor"]},
+            "P2": {"driver": row["p2_driver"], "code": row["p2_code"], "constructor": row["p2_constructor"]},
+            "P3": {"driver": row["p3_driver"], "code": row["p3_code"], "constructor": row["p3_constructor"]},
+        },
+        "confidence": row["confidence"],
+        "reasoning": row["reasoning"],
+        "cached": True,
+    }
+
+
 def log_prediction(
     season: int,
     round: int,
@@ -33,6 +71,7 @@ def log_prediction(
     circuit_id: str,
     weather: str,
     prediction: dict,
+    round_count: int = 0,
 ) -> dict:
     """
     T-039 — Insert a prediction into the predictions table.
@@ -56,6 +95,7 @@ def log_prediction(
         "p3_constructor": podium["P3"]["constructor"],
         "confidence": prediction["confidence"],
         "reasoning": prediction["reasoning"],
+        "round_count": round_count,
     }
     result = get_client().table("predictions").insert(row).execute()
     return result.data[0] if result.data else row

@@ -19,7 +19,7 @@ from data import (
 )
 from formatter import build_prediction_context
 from ai import generate_prediction
-from database import log_prediction, get_history, cast_vote, get_votes, add_comment, get_comments
+from database import log_prediction, get_cached_prediction, get_history, cast_vote, get_votes, add_comment, get_comments
 
 load_dotenv()
 
@@ -134,7 +134,17 @@ async def predict(
             detail=f"Circuit '{circuit_id}' not found in this season's schedule."
         )
 
-    # 3. Build context string and call Claude
+    # 3. Cache lookup — round_count = number of completed races so far this season
+    round_count = sum(1 for r in recent_results) if recent_results else 0
+    try:
+        cached = get_cached_prediction(circuit_id, weather, 2026, round_count)
+        if cached:
+            print(f"[cache] hit — {circuit_id} weather={weather} round_count={round_count}")
+            return cached
+    except Exception as e:
+        print(f"[cache] lookup failed: {e}")
+
+    # 4. Build context string and call Claude
     context = build_prediction_context(
         standings, constructor_standings, recent_results,
         circuit_history, circuit_driver_results, race_info,
@@ -157,6 +167,7 @@ async def predict(
             circuit_id=circuit_id,
             weather=weather,
             prediction=prediction,
+            round_count=round_count,
         )
     except Exception as e:
         print(f"[db] Failed to log prediction: {e}")
