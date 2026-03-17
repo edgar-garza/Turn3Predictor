@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import html2canvas from 'html2canvas'
+import { toPng } from 'html-to-image'
 import ShareCard from './ShareCard'
 import CommentsSection from './CommentsSection'
 import { getVotes, castVote } from '../api'
@@ -68,16 +68,11 @@ function ShareButton({ prediction, shareCardRef }) {
       el.style.visibility = 'visible'
       await document.fonts.ready
       await new Promise(r => setTimeout(r, 50))
-      const canvas = await html2canvas(el, {
-        backgroundColor: '#0a0a0a',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      })
+      const dataUrl = await toPng(el, { pixelRatio: 2 })
       el.style.visibility = 'hidden'
       const link = document.createElement('a')
       link.download = `turn3-prediction-${prediction.race.replace(/\s+/g, '-').toLowerCase()}.png`
-      link.href = canvas.toDataURL('image/png')
+      link.href = dataUrl
       link.click()
       setState('done')
       setTimeout(() => setState('idle'), 2500)
