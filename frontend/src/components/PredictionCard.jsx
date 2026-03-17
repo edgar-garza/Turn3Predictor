@@ -64,12 +64,16 @@ function ShareButton({ prediction, shareCardRef }) {
     if (state !== 'idle') return
     setState('generating')
     try {
-      const canvas = await html2canvas(shareCardRef.current, {
+      const el = shareCardRef.current
+      el.style.visibility = 'visible'
+      await new Promise(r => setTimeout(r, 50))
+      const canvas = await html2canvas(el, {
         backgroundColor: '#0a0a0a',
         scale: 2,
         useCORS: true,
         logging: false,
       })
+      el.style.visibility = 'hidden'
       const link = document.createElement('a')
       link.download = `turn3-prediction-${prediction.race.replace(/\s+/g, '-').toLowerCase()}.png`
       link.href = canvas.toDataURL('image/png')
@@ -77,6 +81,7 @@ function ShareButton({ prediction, shareCardRef }) {
       setState('done')
       setTimeout(() => setState('idle'), 2500)
     } catch {
+      shareCardRef.current.style.visibility = 'hidden'
       setState('idle')
     }
   }
