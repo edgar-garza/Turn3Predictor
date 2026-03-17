@@ -102,13 +102,13 @@ const ShareCard = forwardRef(function ShareCard({ prediction, votes }, ref) {
               background: c.bg + '55',
               border: `1px solid ${c.border}66`,
               borderRadius: '12px',
-              padding: '10px 18px',
+              padding: '12px 18px',
               alignItems: 'center',
             }}>
-              <span style={{ color: c.label, fontSize: '26px', fontWeight: 900, width: '36px', textAlign: 'center', flexShrink: 0, lineHeight: 1, transform: 'translateY(-3px)', display: 'inline-block' }}>{pos}</span>
-              <div style={{ flex: 1, transform: 'translateY(-3px)' }}>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: '#ffffff', lineHeight: 1, margin: 0 }}>{driver.driver}</div>
-                <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', marginTop: '3px', lineHeight: 1 }}>{driver.constructor}</div>
+              <span style={{ color: c.label, fontSize: '26px', fontWeight: 900, width: '36px', textAlign: 'center', flexShrink: 0, lineHeight: 1 }}>{pos}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#ffffff', lineHeight: 1, margin: 0, padding: 0 }}>{driver.driver}</div>
+                <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', marginTop: '4px', lineHeight: 1 }}>{driver.constructor}</div>
               </div>
               <span style={{
                 background: c.bg,
