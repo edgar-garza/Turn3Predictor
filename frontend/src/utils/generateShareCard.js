@@ -112,7 +112,7 @@ export async function generateShareCard(prediction, votes) {
   // ── Calculate total canvas height ──────────────────────────────────────
   let H = 0
   H += 44              // top padding
-  H += 56              // header row (logo height)
+  H += 80              // header row (logo height)
   H += 28              // gap
   H += 16              // "AI PREDICTION" label
   H += 8               // gap
@@ -145,9 +145,9 @@ export async function generateShareCard(prediction, votes) {
   // ── Logo (centered, white) ─────────────────────────────────────────────
   const logoCanvas = await loadWhiteLogo()
   if (logoCanvas) {
-    const lH = 48
+    const lH = 72
     const lW = (logoCanvas.width / logoCanvas.height) * lH
-    ctx.drawImage(logoCanvas, (W - lW) / 2, y + (56 - lH) / 2, lW, lH)
+    ctx.drawImage(logoCanvas, (W - lW) / 2, y + (80 - lH) / 2, lW, lH)
   }
 
   // ── Confidence badge (top right) ───────────────────────────────────────
@@ -158,7 +158,7 @@ export async function generateShareCard(prediction, votes) {
   const badgeW = 14 + confLabelW + 6 + confNumW + 14
   const badgeH = 28
   const badgeX = W - PH - badgeW
-  const badgeY = y + (56 - badgeH) / 2
+  const badgeY = y + (80 - badgeH) / 2
 
   ctx.fillStyle = confidenceColor + '22'
   rrect(ctx, badgeX, badgeY, badgeW, badgeH, 14)
@@ -176,7 +176,7 @@ export async function generateShareCard(prediction, votes) {
   ctx.font = `900 20px ${barlow}`
   ctx.fillText(`${confidence}/10`, badgeX + 14 + confLabelW + 6, badgeY + badgeH / 2)
 
-  y += 56 + 28
+  y += 80 + 28
 
   // ── "AI PREDICTION" label ──────────────────────────────────────────────
   ctx.font = `700 13px ${barlow}`
