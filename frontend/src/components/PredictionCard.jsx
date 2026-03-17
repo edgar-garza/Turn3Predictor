@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { toPng } from 'html-to-image'
-import ShareCard from './ShareCard'
+import { useState, useEffect } from 'react'
+import { generateShareCard } from '../utils/generateShareCard'
 import CommentsSection from './CommentsSection'
 import { getVotes, castVote } from '../api'
 
@@ -57,19 +56,15 @@ function PodiumSlot({ position, driver }) {
   )
 }
 
-function ShareButton({ prediction, shareCardRef }) {
+function ShareButton({ prediction, votes }) {
   const [state, setState] = useState('idle') // idle | generating | done
 
   async function handleShare() {
     if (state !== 'idle') return
     setState('generating')
     try {
-      const el = shareCardRef.current
-      el.style.visibility = 'visible'
       await document.fonts.ready
-      await new Promise(r => setTimeout(r, 50))
-      const dataUrl = await toPng(el, { pixelRatio: 2 })
-      el.style.visibility = 'hidden'
+      const dataUrl = await generateShareCard(prediction, votes)
       const link = document.createElement('a')
       link.download = `turn3-prediction-${prediction.race.replace(/\s+/g, '-').toLowerCase()}.png`
       link.href = dataUrl
@@ -77,7 +72,6 @@ function ShareButton({ prediction, shareCardRef }) {
       setState('done')
       setTimeout(() => setState('idle'), 2500)
     } catch {
-      shareCardRef.current.style.visibility = 'hidden'
       setState('idle')
     }
   }
@@ -158,7 +152,6 @@ function VoteBar({ votes, onVote, loading }) {
 
 export default function PredictionCard({ prediction, circuitId }) {
   const { race, podium, confidence, reasoning, weather } = prediction
-  const shareCardRef = useRef(null)
 
   const [votes, setVotes] = useState({ agree: 0, disagree: 0, user_vote: null })
   const [votesLoading, setVotesLoading] = useState(true)
@@ -223,7 +216,7 @@ export default function PredictionCard({ prediction, circuitId }) {
 
       {/* Actions */}
       <div className="flex justify-end">
-        <ShareButton prediction={prediction} shareCardRef={shareCardRef} />
+        <ShareButton prediction={prediction} votes={votes} />
       </div>
 
       {/* Vote bar */}
@@ -233,9 +226,6 @@ export default function PredictionCard({ prediction, circuitId }) {
 
       {/* Comments */}
       {circuitId && <CommentsSection circuitId={circuitId} />}
-
-      {/* Hidden share card — captured by html2canvas */}
-      <ShareCard ref={shareCardRef} prediction={prediction} votes={votes} />
     </div>
   )
 }
