@@ -5,10 +5,12 @@ Base URL: https://api.jolpi.ca/ergast/f1/
 Rate limits: 4 req/sec burst, 500 req/hr sustained — no auth required.
 
 Endpoints used:
-  Driver standings   : /current/driverstandings.json
-  Race results       : /current/results.json
-  Race schedule      : /current.json
-  Circuit history    : /circuits/{circuitId}/results/1.json  (winners only)
+  Driver standings      : /current/driverstandings.json
+  Constructor standings : /current/constructorstandings.json
+  Race results          : /current/results.json
+  Race schedule         : /current.json
+  Circuit history       : /circuits/{circuitId}/results/1.json  (winners only)
+  Circuit full results  : /circuits/{circuitId}/results.json    (all positions)
 """
 
 import httpx
@@ -103,6 +105,71 @@ def fetch_race_schedule() -> list[dict]:
             "time": race.get("time", "TBA"),
         }
         for race in races
+    ]
+
+
+def fetch_constructor_standings() -> list[dict]:
+    """
+    Fetch current season constructor championship standings.
+
+    Returns:
+        [{"position", "constructor", "nationality", "points", "wins"}, ...]
+    """
+    data = _get(f"{BASE_URL}/current/constructorstandings.json")
+    standings_lists = data["MRData"]["StandingsTable"]["StandingsLists"]
+
+    if not standings_lists:
+        return []
+
+    return [
+        {
+            "position": e["position"],
+            "constructor": e["Constructor"]["name"],
+            "nationality": e["Constructor"]["nationality"],
+            "points": e["points"],
+            "wins": e["wins"],
+        }
+        for e in standings_lists[0]["ConstructorStandings"]
+    ]
+
+
+def fetch_circuit_all_results(circuit_id: str, limit: int = 3) -> list[dict]:
+    """
+    Fetch full grid results for the last N races at a circuit (T-034).
+
+    The Ergast/Jolpica API paginates by driver-result rows (~20 per race),
+    so we use a two-step fetch: first get the total count, then request
+    exactly the last N races using offset.
+
+    Returns:
+        [{"season", "race", "results": [{"position", "driver", "code", "constructor"}]}]
+    """
+    # Step 1 — get total number of result rows at this circuit
+    probe = _get(f"{BASE_URL}/circuits/{circuit_id}/results.json?limit=1")
+    total = int(probe["MRData"]["total"])
+
+    # Step 2 — offset back by enough rows to cover `limit` races (~20 drivers/race)
+    rows_per_race = 20
+    offset = max(0, total - limit * rows_per_race)
+    data = _get(f"{BASE_URL}/circuits/{circuit_id}/results.json?limit={limit * rows_per_race}&offset={offset}")
+    races = data["MRData"]["RaceTable"]["Races"]
+    recent = races[-limit:] if len(races) >= limit else races
+
+    return [
+        {
+            "season": race["season"],
+            "race": race["raceName"],
+            "results": [
+                {
+                    "position": r["position"],
+                    "driver": f"{r['Driver']['givenName']} {r['Driver']['familyName']}",
+                    "code": r["Driver"].get("code", r["Driver"]["driverId"][:3].upper()),
+                    "constructor": r["Constructor"]["name"],
+                }
+                for r in race.get("Results", [])[:10]  # top 10 only
+            ],
+        }
+        for race in reversed(recent)  # most recent first
     ]
 
 

@@ -5,9 +5,11 @@ import httpx
 
 from data import (
     fetch_driver_standings,
+    fetch_constructor_standings,
     fetch_last_n_results,
     fetch_race_schedule,
     fetch_circuit_history,
+    fetch_circuit_all_results,
 )
 from formatter import build_prediction_context
 from ai import generate_prediction
@@ -88,8 +90,10 @@ def predict(circuit_id: str):
     try:
         schedule = fetch_race_schedule()
         standings = fetch_driver_standings()
+        constructor_standings = fetch_constructor_standings()
         recent_results = fetch_last_n_results(5)
         circuit_history = fetch_circuit_history(circuit_id, limit=10)
+        circuit_driver_results = fetch_circuit_all_results(circuit_id, limit=3)
     except Exception as e:
         _handle_data_error(e)
 
@@ -104,7 +108,10 @@ def predict(circuit_id: str):
         )
 
     # 3. Build context string and call Claude
-    context = build_prediction_context(standings, recent_results, circuit_history, race_info)
+    context = build_prediction_context(
+        standings, constructor_standings, recent_results,
+        circuit_history, circuit_driver_results, race_info
+    )
 
     try:
         prediction = generate_prediction(context, race_info["race"])

@@ -1,49 +1,17 @@
 """
-T-013 / T-032 — Data formatter for prediction prompts.
+Data formatter for prediction prompts.
 
 Converts raw API data into a structured plain-text context block
-that gets injected into the Claude system prompt.
+injected into the Claude prompt.
 
-Inputs (T-032 — defined prediction data inputs):
-  1. Current driver championship standings
-  2. Last 5 race results (recent form)
-  3. Circuit historical winners (track-specific data)
-  4. Upcoming race info (name, circuit, country)
+Data inputs (T-032):
+  1. Driver championship standings
+  2. Constructor championship standings  (T-035)
+  3. Last 5 race results + driver form   (T-033)
+  4. Circuit winner history
+  5. Circuit full results (per-driver)   (T-034)
+  6. Upcoming race info
 """
-
-
-def format_standings(standings: list[dict]) -> str:
-    lines = ["DRIVER CHAMPIONSHIP STANDINGS (current season):"]
-    for d in standings[:10]:  # top 10 only — keeps prompt tight
-        lines.append(
-            f"  P{d['position']}. {d['driver']} ({d['code']}) — "
-            f"{d['constructor']} — {d['points']} pts, {d['wins']} wins"
-        )
-    return "\n".join(lines)
-
-
-def format_recent_results(results: list[dict]) -> str:
-    if not results:
-        return "RECENT RACE RESULTS: No completed races yet this season."
-
-    sections = ["RECENT RACE RESULTS (last 5 races, newest first):"]
-    for race in reversed(results):
-        sections.append(f"\n  {race['race']} (Round {race['round']}, {race['date']}):")
-        for r in race["results"][:5]:  # top 5 finishers per race
-            sections.append(f"    P{r['position']}. {r['driver']} ({r['constructor']})")
-    return "\n".join(sections)
-
-
-def format_circuit_history(history: list[dict], circuit: str) -> str:
-    if not history:
-        return f"CIRCUIT HISTORY ({circuit}): No historical data available."
-
-    lines = [f"CIRCUIT HISTORY — {circuit} (last {len(history)} races, most recent first):"]
-    for h in history:
-        lines.append(
-            f"  {h['season']}: {h['winner']} ({h['constructor']})"
-        )
-    return "\n".join(lines)
 
 
 def format_race_info(race: dict) -> str:
@@ -57,22 +25,108 @@ def format_race_info(race: dict) -> str:
     )
 
 
+def format_standings(standings: list[dict]) -> str:
+    lines = ["DRIVER CHAMPIONSHIP STANDINGS (current season):"]
+    for d in standings[:10]:
+        lines.append(
+            f"  P{d['position']}. {d['driver']} ({d['code']}) — "
+            f"{d['constructor']} — {d['points']} pts, {d['wins']} wins"
+        )
+    return "\n".join(lines)
+
+
+def format_constructor_standings(standings: list[dict]) -> str:
+    """T-035 — constructor championship context."""
+    if not standings:
+        return "CONSTRUCTOR STANDINGS: Not yet available."
+    lines = ["CONSTRUCTOR CHAMPIONSHIP STANDINGS:"]
+    for c in standings[:8]:
+        lines.append(
+            f"  P{c['position']}. {c['constructor']} — {c['points']} pts, {c['wins']} wins"
+        )
+    return "\n".join(lines)
+
+
+def format_recent_results(results: list[dict]) -> str:
+    """T-033 — recent race results with implicit driver form."""
+    if not results:
+        return "RECENT RACE RESULTS: No completed races yet this season."
+
+    sections = ["RECENT RACE RESULTS (newest first):"]
+    for race in reversed(results):
+        sections.append(f"\n  {race['race']} (Round {race['round']}, {race['date']}):")
+        for r in race["results"][:5]:
+            sections.append(f"    P{r['position']}. {r['driver']} ({r['constructor']})")
+    return "\n".join(sections)
+
+
+def format_driver_form(results: list[dict]) -> str:
+    """
+    T-033 — Derive each driver's last-N finishing positions from recent results.
+    Groups results by driver code and shows their positional trend.
+    """
+    if not results:
+        return ""
+
+    # Build {code: [positions]} ordered newest-first
+    form: dict[str, list[str]] = {}
+    for race in reversed(results):
+        for r in race["results"]:
+            code = r["driver"]
+            if code not in form:
+                form[code] = []
+            form[code].append(r["position"] if r["status"] == "Finished" else "DNF")
+
+    lines = ["DRIVER FORM (last races, most recent → oldest):"]
+    for code, positions in sorted(form.items(), key=lambda x: int(x[1][0]) if x[1][0].isdigit() else 99):
+        lines.append(f"  {code}: {' → '.join(positions)}")
+    return "\n".join(lines)
+
+
+def format_circuit_history(history: list[dict], circuit: str) -> str:
+    if not history:
+        return f"CIRCUIT WINNER HISTORY ({circuit}): No data available."
+
+    lines = [f"CIRCUIT WINNER HISTORY — {circuit} (most recent first):"]
+    for h in history:
+        lines.append(f"  {h['season']}: {h['winner']} ({h['constructor']})")
+    return "\n".join(lines)
+
+
+def format_circuit_driver_results(circuit_results: list[dict], circuit: str) -> str:
+    """T-034 — per-driver performance at this specific circuit."""
+    if not circuit_results:
+        return f"CIRCUIT DRIVER HISTORY ({circuit}): No data available."
+
+    lines = [f"RECENT RESULTS AT THIS CIRCUIT — {circuit}:"]
+    for race in circuit_results:
+        lines.append(f"\n  {race['season']} {race['race']}:")
+        for r in race["results"]:
+            lines.append(f"    P{r['position']}. {r['code']} ({r['constructor']})")
+    return "\n".join(lines)
+
+
 def build_prediction_context(
     standings: list[dict],
+    constructor_standings: list[dict],
     recent_results: list[dict],
     circuit_history: list[dict],
+    circuit_driver_results: list[dict],
     race_info: dict,
 ) -> str:
-    """
-    Combine all data sources into a single context string for Claude.
-    """
     sections = [
         format_race_info(race_info),
         "",
         format_standings(standings),
         "",
+        format_constructor_standings(constructor_standings),
+        "",
         format_recent_results(recent_results),
         "",
+        format_driver_form(recent_results),
+        "",
         format_circuit_history(circuit_history, race_info["circuit"]),
+        "",
+        format_circuit_driver_results(circuit_driver_results, race_info["circuit"]),
     ]
     return "\n".join(sections)
