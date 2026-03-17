@@ -5,10 +5,10 @@ Base URL: https://api.jolpi.ca/ergast/f1/
 Rate limits: 4 req/sec burst, 500 req/hr sustained — no auth required.
 
 Endpoints used:
-  Driver standings : /current/driverstandings.json
-  Race results     : /current/results.json
-  Race schedule    : /current.json
-  Circuit data     : /circuits/{circuitId}.json
+  Driver standings   : /current/driverstandings.json
+  Race results       : /current/results.json
+  Race schedule      : /current.json
+  Circuit history    : /circuits/{circuitId}/results/1.json  (winners only)
 """
 
 import httpx
@@ -16,86 +16,122 @@ import httpx
 BASE_URL = "https://api.jolpi.ca/ergast/f1"
 
 
-def fetch_driver_standings() -> list[dict]:
-    """
-    Fetch the current season driver championship standings.
-
-    Returns a list of dicts, e.g.:
-    [
-      {"position": "1", "driver": "Max Verstappen", "code": "VER",
-       "constructor": "Red Bull", "points": "77", "wins": "3"},
-      ...
-    ]
-    """
-    url = f"{BASE_URL}/current/driverstandings.json"
+def _get(url: str) -> dict:
+    """Shared HTTP GET with timeout and error propagation."""
     response = httpx.get(url, timeout=10)
     response.raise_for_status()
+    return response.json()
 
-    standings_list = (
-        response.json()
-        ["MRData"]["StandingsTable"]["StandingsLists"]
-    )
 
-    if not standings_list:
+def fetch_driver_standings() -> list[dict]:
+    """
+    Fetch current season driver championship standings.
+
+    Returns:
+        [{"position", "driver", "code", "constructor", "points", "wins"}, ...]
+    """
+    data = _get(f"{BASE_URL}/current/driverstandings.json")
+    standings_lists = data["MRData"]["StandingsTable"]["StandingsLists"]
+
+    if not standings_lists:
         return []
 
-    drivers = []
-    for entry in standings_list[0]["DriverStandings"]:
-        drivers.append({
-            "position": entry["position"],
-            "driver": f"{entry['Driver']['givenName']} {entry['Driver']['familyName']}",
-            "code": entry["Driver"]["code"],
-            "constructor": entry["Constructors"][0]["name"],
-            "points": entry["points"],
-            "wins": entry["wins"],
-        })
-    return drivers
+    return [
+        {
+            "position": e["position"],
+            "driver": f"{e['Driver']['givenName']} {e['Driver']['familyName']}",
+            "code": e["Driver"]["code"],
+            "constructor": e["Constructors"][0]["name"],
+            "points": e["points"],
+            "wins": e["wins"],
+        }
+        for e in standings_lists[0]["DriverStandings"]
+    ]
 
 
 def fetch_last_n_results(n: int = 5) -> list[dict]:
     """
     Fetch results from the last N completed races of the current season.
 
-    Returns a list of race result dicts, e.g.:
-    [
-      {
-        "round": "3",
-        "race": "Australian Grand Prix",
-        "circuit": "Albert Park",
-        "date": "2025-03-23",
-        "results": [
-          {"position": "1", "driver": "VER", "constructor": "Red Bull", "points": "25"},
-          ...
-        ]
-      },
-      ...
-    ]
+    Returns:
+        [{"round", "race", "circuit", "date",
+          "results": [{"position", "driver", "constructor", "points", "status"}]}, ...]
     """
-    url = f"{BASE_URL}/current/results.json?limit=100"
-    response = httpx.get(url, timeout=10)
-    response.raise_for_status()
-
-    races = response.json()["MRData"]["RaceTable"]["Races"]
-
-    # Take the last n completed races
+    data = _get(f"{BASE_URL}/current/results.json?limit=100")
+    races = data["MRData"]["RaceTable"]["Races"]
     recent = races[-n:] if len(races) >= n else races
 
-    results = []
-    for race in recent:
-        top_results = []
-        for r in race.get("Results", []):
-            top_results.append({
-                "position": r["position"],
-                "driver": r["Driver"]["code"],
-                "constructor": r["Constructor"]["name"],
-                "points": r["points"],
-                "status": r["status"],
-            })
-        results.append({
+    return [
+        {
             "round": race["round"],
             "race": race["raceName"],
             "circuit": race["Circuit"]["circuitName"],
             "date": race["date"],
-            "results": top_results,
+            "results": [
+                {
+                    "position": r["position"],
+                    "driver": r["Driver"]["code"],
+                    "constructor": r["Constructor"]["name"],
+                    "points": r["points"],
+                    "status": r["status"],
+                }
+                for r in race.get("Results", [])
+            ],
+        }
+        for race in recent
+    ]
+
+
+def fetch_race_schedule() -> list[dict]:
+    """
+    Fetch the full current season race calendar.
+
+    Returns:
+        [{"round", "race", "circuit_id", "circuit", "country", "date", "time"}, ...]
+    """
+    data = _get(f"{BASE_URL}/current.json")
+    races = data["MRData"]["RaceTable"]["Races"]
+
+    return [
+        {
+            "round": race["round"],
+            "race": race["raceName"],
+            "circuit_id": race["Circuit"]["circuitId"],
+            "circuit": race["Circuit"]["circuitName"],
+            "country": race["Circuit"]["Location"]["country"],
+            "date": race["date"],
+            "time": race.get("time", "TBA"),
+        }
+        for race in races
+    ]
+
+
+def fetch_circuit_history(circuit_id: str, limit: int = 10) -> list[dict]:
+    """
+    Fetch historical race winners at a specific circuit (most recent first).
+
+    Args:
+        circuit_id: Jolpica circuit ID (e.g. "albert_park", "monaco", "bahrain")
+        limit: Number of past races to return
+
+    Returns:
+        [{"season", "race", "winner", "constructor", "laps", "time"}, ...]
+    """
+    # Fetch a large batch and slice the last N — API returns oldest first
+    data = _get(f"{BASE_URL}/circuits/{circuit_id}/results/1.json?limit=100")
+    races = data["MRData"]["RaceTable"]["Races"]
+    recent_races = races[-limit:]  # last N = most recent
+
+    history = []
+    for race in reversed(recent_races):  # most recent first
+        result = race["Results"][0]
+        history.append({
+            "season": race["season"],
+            "race": race["raceName"],
+            "winner": f"{result['Driver']['givenName']} {result['Driver']['familyName']}",
+            "code": result["Driver"]["code"],
+            "constructor": result["Constructor"]["name"],
+            "laps": result["laps"],
+            "time": result.get("Time", {}).get("time", "N/A"),
         })
-    return results
+    return history
