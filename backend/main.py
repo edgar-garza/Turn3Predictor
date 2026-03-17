@@ -175,6 +175,38 @@ async def predict(
     return prediction
 
 
+@app.get("/debug/cache/{circuit_id}")
+def debug_cache(circuit_id: str, weather: str = "dry", season: int = 2026):
+    """Temporary debug endpoint — shows cache state for a circuit."""
+    from data import fetch_last_n_results
+    recent = fetch_last_n_results(5)
+    round_count = len(recent)
+    cached = get_cached_prediction(circuit_id, weather, season, round_count)
+    rows = get_client_rows(circuit_id, season)
+    return {
+        "circuit_id": circuit_id,
+        "round_count": round_count,
+        "cache_hit": cached is not None,
+        "db_rows": rows,
+    }
+
+
+def get_client_rows(circuit_id: str, season: int):
+    from database import get_client
+    try:
+        return (
+            get_client()
+            .table("predictions")
+            .select("circuit_id,weather,season,round_count,created_at")
+            .eq("circuit_id", circuit_id)
+            .eq("season", season)
+            .execute()
+            .data
+        )
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/history")
 def history(season: int = 2026):
     """T-042 — Return all predictions with accuracy scores where results exist."""
