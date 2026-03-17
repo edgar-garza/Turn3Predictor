@@ -53,7 +53,7 @@ const ShareCard = forwardRef(function ShareCard({ prediction, votes }, ref) {
         position: 'fixed',
         left: '0',
         top: '0',
-        opacity: '0',
+        visibility: 'hidden',
         pointerEvents: 'none',
         zIndex: -1,
         boxSizing: 'border-box',
