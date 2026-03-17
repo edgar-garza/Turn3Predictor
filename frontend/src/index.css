@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@theme {
+  /* Turn 3 brand red — sampled from logo */
+  --color-t3-red: #B91C1C;
+  --color-t3-red-light: #DC2626;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }

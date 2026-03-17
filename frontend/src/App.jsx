@@ -73,16 +73,28 @@ export default function App() {
 
         {tab === 'Predict' && (
           <>
-            <div className="text-center max-w-xl">
-              <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-black uppercase leading-none text-white mb-3"
-                style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-              >
-                Who wins <span className="text-red-600">Sunday?</span>
-              </h1>
-              <p className="text-white/40 text-sm sm:text-base">
-                AI-powered F1 race predictions. Pick a race, get the podium.
-              </p>
+            <div className="text-center max-w-xl flex flex-col items-center gap-4">
+              {/* Hero logo */}
+              <div className="bg-white rounded-xl px-6 py-4 inline-block">
+                <img
+                  src="/Turn3LogoPNG.png"
+                  alt="Turn 3 Podcast"
+                  className="h-14 sm:h-20 w-auto object-contain"
+                />
+              </div>
+
+              {/* Headline */}
+              <div>
+                <h1
+                  className="text-4xl sm:text-5xl lg:text-6xl font-black uppercase leading-none text-white mb-2"
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                >
+                  Who wins <span className="text-red-600">Sunday?</span>
+                </h1>
+                <p className="text-white/40 text-sm sm:text-base">
+                  AI-powered F1 race predictions. Pick a race, get the podium.
+                </p>
+              </div>
             </div>
 
             <StatsBar stats={stats} />
@@ -97,12 +109,15 @@ export default function App() {
         {tab === 'History' && <HistoryPage />}
       </main>
 
-      <footer className="border-t border-white/10 px-4 sm:px-6 py-4 text-center">
+      <footer className="border-t border-white/10 px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="bg-white rounded-md px-2.5 py-1">
+          <img src="/Turn3LogoPNG.png" alt="Turn 3 Podcast" className="h-5 w-auto object-contain" />
+        </div>
         <p
           className="text-white/20 text-xs uppercase tracking-widest"
           style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
         >
-          Turn 3 Podcast · Predictions powered by Claude AI
+          Predictions powered by Claude AI
         </p>
       </footer>
     </div>
