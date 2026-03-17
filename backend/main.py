@@ -20,7 +20,7 @@ app = FastAPI(title="Turn3 F1 Predictor API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origin_regex=r"http://localhost:\d+",  # any localhost port (dev)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
