@@ -91,6 +91,7 @@ function ShareButton({ prediction }) {
 
 export default function PredictionCard({ prediction, circuitId }) {
   const { race, podium, confidence, reasoning, weather } = prediction
+  console.log('[PredictionCard] circuitId =', circuitId)
 
   return (
     <div className="w-full max-w-xl flex flex-col gap-4 animate-[fadeIn_0.4s_ease]">
