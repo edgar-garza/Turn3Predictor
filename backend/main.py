@@ -4,6 +4,8 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
 import httpx
 
 from data import (
@@ -88,7 +90,7 @@ def get_recent_results(n: int = Query(default=5, ge=1, le=10)):
 
 @app.get("/predict/{circuit_id}")
 @limiter.limit("10/hour")
-def predict(
+async def predict(
     request: Request,
     circuit_id: str,
     weather: str = Query(default="dry", pattern="^(dry|wet|mixed)$"),
@@ -99,16 +101,27 @@ def predict(
     circuit_id : Jolpica circuit ID (e.g. albert_park, monaco, bahrain)
     weather    : Expected race conditions — dry | wet | mixed  (T-036)
     """
-    # 1. Fetch all context data
-    try:
-        schedule = fetch_race_schedule()
-        standings = fetch_driver_standings()
-        constructor_standings = fetch_constructor_standings()
-        recent_results = fetch_last_n_results(5)
-        circuit_history = fetch_circuit_history(circuit_id, limit=10)
-        circuit_driver_results = fetch_circuit_all_results(circuit_id, limit=3)
-    except Exception as e:
-        _handle_data_error(e)
+    # 1. Fetch all context data in parallel — cuts serial API call latency
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as pool:
+        try:
+            (
+                schedule,
+                standings,
+                constructor_standings,
+                recent_results,
+                circuit_history,
+                circuit_driver_results,
+            ) = await asyncio.gather(
+                loop.run_in_executor(pool, fetch_race_schedule),
+                loop.run_in_executor(pool, fetch_driver_standings),
+                loop.run_in_executor(pool, fetch_constructor_standings),
+                loop.run_in_executor(pool, lambda: fetch_last_n_results(5)),
+                loop.run_in_executor(pool, lambda: fetch_circuit_history(circuit_id, 10)),
+                loop.run_in_executor(pool, lambda: fetch_circuit_all_results(circuit_id, 3)),
+            )
+        except Exception as e:
+            _handle_data_error(e)
 
     # 2. Find race info from schedule
     race_info = next(
