@@ -65,14 +65,24 @@ function ShareButton({ prediction, votes }) {
     try {
       await document.fonts.ready
       const dataUrl = await generateShareCard(prediction, votes)
-      const link = document.createElement('a')
-      link.download = `turn3-prediction-${prediction.race.replace(/\s+/g, '-').toLowerCase()}.png`
-      link.href = dataUrl
-      link.click()
+      const filename = `turn3-prediction-${prediction.race.replace(/\s+/g, '-').toLowerCase()}.png`
+      const blob = await (await fetch(dataUrl)).blob()
+      const file = new File([blob], filename, { type: 'image/png' })
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `Turn3 Prediction: ${prediction.race}` })
+      } else {
+        const link = document.createElement('a')
+        link.download = filename
+        link.href = dataUrl
+        link.click()
+      }
       setState('done')
       setTimeout(() => setState('idle'), 2500)
-    } catch {
-      setState('idle')
+    } catch (e) {
+      // AbortError = user dismissed share sheet — treat as success
+      if (e?.name !== 'AbortError') setState('idle')
+      else { setState('done'); setTimeout(() => setState('idle'), 2500) }
     }
   }
 
