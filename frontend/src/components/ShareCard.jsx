@@ -99,30 +99,34 @@ const ShareCard = forwardRef(function ShareCard({ prediction, votes }, ref) {
           const driver = podium[pos]
           return (
             <div key={pos} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
+              display: 'table',
+              width: '100%',
+              boxSizing: 'border-box',
               background: c.bg + '55',
               border: `1px solid ${c.border}66`,
               borderRadius: '12px',
               padding: '12px 18px',
-              alignItems: 'center',
             }}>
-              <span style={{ color: c.label, fontSize: '26px', fontWeight: 900, width: '36px', textAlign: 'center', flexShrink: 0, lineHeight: 1 }}>{pos}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: '#ffffff', lineHeight: 1, margin: 0, padding: 0 }}>{driver.driver}</div>
-                <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', marginTop: '4px', lineHeight: 1 }}>{driver.constructor}</div>
+              <div style={{ display: 'table-cell', verticalAlign: 'middle', width: '42px' }}>
+                <span style={{ color: c.label, fontSize: '26px', fontWeight: 900, lineHeight: 1, display: 'block', textAlign: 'center' }}>{pos}</span>
               </div>
-              <span style={{
-                background: c.bg,
-                border: `1px solid ${c.border}66`,
-                color: c.label,
-                fontSize: '12px',
-                fontWeight: 900,
-                letterSpacing: '1px',
-                padding: '3px 8px',
-                borderRadius: '6px',
-              }}>{driver.code}</span>
+              <div style={{ display: 'table-cell', verticalAlign: 'middle', paddingLeft: '12px' }}>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#ffffff', lineHeight: 1.2 }}>{driver.driver}</div>
+                <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', marginTop: '3px', lineHeight: 1.2 }}>{driver.constructor}</div>
+              </div>
+              <div style={{ display: 'table-cell', verticalAlign: 'middle', textAlign: 'right', width: '50px' }}>
+                <span style={{
+                  display: 'inline-block',
+                  background: c.bg,
+                  border: `1px solid ${c.border}66`,
+                  color: c.label,
+                  fontSize: '12px',
+                  fontWeight: 900,
+                  letterSpacing: '1px',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                }}>{driver.code}</span>
+              </div>
             </div>
           )
         })}
