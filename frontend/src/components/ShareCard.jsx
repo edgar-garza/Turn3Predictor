@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useEffect, useRef } from 'react'
 
 const POSITION_COLORS = {
   P1: { bg: '#78350f', border: '#d97706', label: '#fbbf24' },
@@ -8,6 +8,32 @@ const POSITION_COLORS = {
 
 const ShareCard = forwardRef(function ShareCard({ prediction, votes }, ref) {
   const { race, podium, confidence, reasoning } = prediction
+  const logoCanvasRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = logoCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      canvas.width = img.width
+      canvas.height = img.height
+      ctx.drawImage(img, 0, 0)
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const data = imageData.data
+      // Make every non-transparent pixel white (equivalent to brightness(0) invert(1))
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] > 0) {
+          data[i] = 255
+          data[i + 1] = 255
+          data[i + 2] = 255
+        }
+      }
+      ctx.putImageData(imageData, 0, 0)
+    }
+    img.src = '/Turn3LogoPNG.png'
+  }, [])
   const total = (votes?.agree || 0) + (votes?.disagree || 0)
   const agreePct = total > 0 ? Math.round((votes.agree / total) * 100) : null
 
@@ -32,11 +58,9 @@ const ShareCard = forwardRef(function ShareCard({ prediction, votes }, ref) {
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
-        <img
-          src="/Turn3LogoPNG.png"
-          alt="Turn 3"
-          style={{ height: '36px', width: 'auto', filter: 'brightness(0) invert(1)' }}
-          crossOrigin="anonymous"
+        <canvas
+          ref={logoCanvasRef}
+          style={{ height: '36px', width: 'auto' }}
         />
         <div style={{
           background: confidenceColor + '22',
