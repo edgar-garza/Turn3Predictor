@@ -77,9 +77,11 @@ def format_driver_form(results: list[dict]) -> str:
                 form[code] = []
             form[code].append(r["position"] if r["status"] == "Finished" else "DNF")
 
+    # Only show drivers with at least one classified finish — drops pure-DNF noise
     lines = ["DRIVER FORM (last races, most recent → oldest):"]
     for code, positions in sorted(form.items(), key=lambda x: int(x[1][0]) if x[1][0].isdigit() else 99):
-        lines.append(f"  {code}: {' → '.join(positions)}")
+        if any(p.isdigit() for p in positions):
+            lines.append(f"  {code}: {' → '.join(positions)}")
     return "\n".join(lines)
 
 

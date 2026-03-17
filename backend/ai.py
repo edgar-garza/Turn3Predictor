@@ -37,7 +37,7 @@ OUTPUT FORMAT — respond ONLY with valid JSON, no markdown fences, no extra tex
     "P3": {"driver": "<full name>", "code": "<3-letter code>", "constructor": "<team>"}
   },
   "confidence": <1-10>,
-  "reasoning": "<3-5 sentences. Reference specific data points. Punchy, podcast-ready tone. Name the biggest threat to your prediction.>"
+  "reasoning": "<2-3 sentences max. Reference specific data points. Punchy, podcast-ready tone. Name the biggest threat.>"
 }"""
 
 
@@ -60,7 +60,7 @@ def generate_prediction(context: str, race_name: str) -> dict:
 
     message = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=512,
+        max_tokens=350,
         system=SYSTEM_PROMPT,
         messages=[
             {
