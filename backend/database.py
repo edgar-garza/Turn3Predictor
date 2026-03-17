@@ -4,9 +4,12 @@ Supabase database layer for Turn3 F1 Predictor.
 Tables:
   predictions — every AI prediction generated
   results     — actual race results (manually entered after each race)
+  votes       — agree/disagree votes per circuit per season (one per IP)
+  comments    — user comments on predictions
 """
 
 import os
+import hashlib
 from supabase import create_client, Client
 
 _client: Client | None = None
@@ -167,3 +170,78 @@ def get_history(season: int = 2026) -> list[dict]:
         history.append(entry)
 
     return history
+
+
+# ── Votes ─────────────────────────────────────────────────────────────────────
+
+def _hash_ip(ip: str) -> str:
+    """One-way hash of IP so we never store raw addresses."""
+    return hashlib.sha256(ip.encode()).hexdigest()
+
+
+def cast_vote(circuit_id: str, season: int, ip: str, vote: str) -> dict:
+    """
+    Upsert a vote for a circuit. One vote per IP per circuit per season.
+    Returns the updated vote counts.
+    """
+    ip_hash = _hash_ip(ip)
+    client = get_client()
+
+    # Upsert — update if already voted, insert if not
+    client.table("votes").upsert(
+        {"circuit_id": circuit_id, "season": season, "ip_hash": ip_hash, "vote": vote},
+        on_conflict="circuit_id,season,ip_hash",
+    ).execute()
+
+    return get_votes(circuit_id, season, ip)
+
+
+def get_votes(circuit_id: str, season: int, ip: str | None = None) -> dict:
+    """Return agree/disagree counts and the requesting IP's existing vote (if any)."""
+    rows = (
+        get_client()
+        .table("votes")
+        .select("vote,ip_hash")
+        .eq("circuit_id", circuit_id)
+        .eq("season", season)
+        .execute()
+        .data
+    )
+    agree = sum(1 for r in rows if r["vote"] == "agree")
+    disagree = sum(1 for r in rows if r["vote"] == "disagree")
+
+    user_vote = None
+    if ip:
+        ip_hash = _hash_ip(ip)
+        match = next((r for r in rows if r["ip_hash"] == ip_hash), None)
+        if match:
+            user_vote = match["vote"]
+
+    return {"agree": agree, "disagree": disagree, "user_vote": user_vote}
+
+
+# ── Comments ──────────────────────────────────────────────────────────────────
+
+def add_comment(circuit_id: str, season: int, text: str) -> dict:
+    """Insert a comment and return it."""
+    result = (
+        get_client()
+        .table("comments")
+        .insert({"circuit_id": circuit_id, "season": season, "text": text.strip()})
+        .execute()
+    )
+    return result.data[0]
+
+
+def get_comments(circuit_id: str, season: int) -> list[dict]:
+    """Return all comments for a circuit, newest first."""
+    return (
+        get_client()
+        .table("comments")
+        .select("id,created_at,text")
+        .eq("circuit_id", circuit_id)
+        .eq("season", season)
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    )

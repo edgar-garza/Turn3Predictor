@@ -102,7 +102,7 @@ export default function App() {
 
             {loading && <LoadingSpinner race={currentRace} />}
             {error && <ErrorCard message={error} onRetry={handleRetry} />}
-            {prediction && !loading && <PredictionCard prediction={prediction} />}
+            {prediction && !loading && <PredictionCard prediction={prediction} circuitId={lastRequest?.circuitId} />}
             {!prediction && !loading && !error && <PageFiller />}
           </>
         )}

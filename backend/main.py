@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -18,7 +19,7 @@ from data import (
 )
 from formatter import build_prediction_context
 from ai import generate_prediction
-from database import log_prediction, get_history
+from database import log_prediction, get_history, cast_vote, get_votes, add_comment, get_comments
 
 load_dotenv()
 
@@ -170,6 +171,58 @@ def history(season: int = 2026):
         return get_history(season)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"History error: {str(e)}")
+
+
+class VoteBody(BaseModel):
+    vote: str = Field(..., pattern="^(agree|disagree)$")
+
+
+class CommentBody(BaseModel):
+    text: str = Field(..., min_length=1, max_length=500)
+
+
+# ── Votes ─────────────────────────────────────────────────────────────────────
+
+@app.get("/votes/{circuit_id}")
+def read_votes(circuit_id: str, request: Request, season: int = 2026):
+    """Return agree/disagree counts and the caller's existing vote."""
+    try:
+        ip = request.client.host
+        return get_votes(circuit_id, season, ip)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Votes error: {str(e)}")
+
+
+@app.post("/votes/{circuit_id}")
+@limiter.limit("20/hour")
+def submit_vote(circuit_id: str, body: VoteBody, request: Request, season: int = 2026):
+    """Cast or change a vote for a circuit prediction."""
+    try:
+        ip = request.client.host
+        return cast_vote(circuit_id, season, ip, body.vote)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Vote error: {str(e)}")
+
+
+# ── Comments ──────────────────────────────────────────────────────────────────
+
+@app.get("/comments/{circuit_id}")
+def read_comments(circuit_id: str, season: int = 2026):
+    """Return all comments for a circuit prediction."""
+    try:
+        return get_comments(circuit_id, season)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Comments error: {str(e)}")
+
+
+@app.post("/comments/{circuit_id}")
+@limiter.limit("5/hour")
+def post_comment(circuit_id: str, body: CommentBody, request: Request, season: int = 2026):
+    """Post a comment on a circuit prediction."""
+    try:
+        return add_comment(circuit_id, season, body.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Comment error: {str(e)}")
 
 
 @app.get("/stats")

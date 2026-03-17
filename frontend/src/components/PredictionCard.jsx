@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import VoteBar from './VoteBar'
+import CommentsSection from './CommentsSection'
 
 // T-028 — mobile-responsive podium card
 // T-030 — share button
@@ -87,7 +89,7 @@ function ShareButton({ prediction }) {
   )
 }
 
-export default function PredictionCard({ prediction }) {
+export default function PredictionCard({ prediction, circuitId }) {
   const { race, podium, confidence, reasoning, weather } = prediction
 
   return (
@@ -136,6 +138,9 @@ export default function PredictionCard({ prediction }) {
       <div className="flex justify-end">
         <ShareButton prediction={prediction} />
       </div>
+
+      {circuitId && <VoteBar circuitId={circuitId} />}
+      {circuitId && <CommentsSection circuitId={circuitId} />}
     </div>
   )
 }

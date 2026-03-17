@@ -45,3 +45,25 @@ create table if not exists results (
 
 -- Unique constraint so each race only has one result entry
 create unique index if not exists results_season_round_idx on results (season, round);
+
+-- Stores agree/disagree votes per circuit per season (one per IP)
+create table if not exists votes (
+  id            uuid primary key default gen_random_uuid(),
+  created_at    timestamptz not null default now(),
+  circuit_id    text not null,
+  season        int not null,
+  ip_hash       text not null,
+  vote          text not null check (vote in ('agree', 'disagree'))
+);
+
+-- One vote per IP per circuit per season
+create unique index if not exists votes_circuit_season_ip_idx on votes (circuit_id, season, ip_hash);
+
+-- Stores user comments on predictions
+create table if not exists comments (
+  id            uuid primary key default gen_random_uuid(),
+  created_at    timestamptz not null default now(),
+  circuit_id    text not null,
+  season        int not null,
+  text          text not null check (char_length(text) between 1 and 500)
+);
