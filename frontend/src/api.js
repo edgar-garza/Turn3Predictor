@@ -6,6 +6,18 @@ export async function getSchedule() {
   return res.json()
 }
 
+export async function getHistory(season = 2026) {
+  const res = await fetch(`${BASE_URL}/history?season=${season}`)
+  if (!res.ok) throw new Error('Failed to load prediction history')
+  return res.json()
+}
+
+export async function getStats(season = 2026) {
+  const res = await fetch(`${BASE_URL}/stats?season=${season}`)
+  if (!res.ok) throw new Error('Failed to load stats')
+  return res.json()
+}
+
 export async function getPrediction(circuitId, weather = 'dry') {
   const res = await fetch(`${BASE_URL}/predict/${circuitId}?weather=${weather}`)
   if (!res.ok) {

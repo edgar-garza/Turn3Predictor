@@ -13,6 +13,7 @@ from data import (
 )
 from formatter import build_prediction_context
 from ai import generate_prediction
+from database import log_prediction, get_history
 
 load_dotenv()
 
@@ -125,4 +126,51 @@ def predict(
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI prediction error: {str(e)}")
 
+    # T-039 — log prediction to Supabase (non-blocking: failure won't break the response)
+    try:
+        log_prediction(
+            season=2026,
+            round=int(race_info["round"]),
+            race_name=race_info["race"],
+            circuit_id=circuit_id,
+            weather=weather,
+            prediction=prediction,
+        )
+    except Exception as e:
+        print(f"[db] Failed to log prediction: {e}")
+
     return prediction
+
+
+@app.get("/history")
+def history(season: int = 2026):
+    """T-042 — Return all predictions with accuracy scores where results exist."""
+    try:
+        return get_history(season)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"History error: {str(e)}")
+
+
+@app.get("/stats")
+def stats(season: int = 2026):
+    """T-044 — Season accuracy summary stats."""
+    try:
+        entries = get_history(season)
+        scored = [e for e in entries if e["status"] == "scored"]
+        if not scored:
+            return {"season": season, "predictions": len(entries), "scored": 0, "avg_score": None, "avg_pct": None}
+
+        avg_score = round(sum(e["score"]["score"] for e in scored) / len(scored), 2)
+        avg_pct = round(sum(e["score"]["percentage"] for e in scored) / len(scored))
+        perfect = sum(1 for e in scored if e["score"]["score"] == 6)
+
+        return {
+            "season": season,
+            "predictions": len(entries),
+            "scored": len(scored),
+            "avg_score": avg_score,
+            "avg_pct": avg_pct,
+            "perfect_predictions": perfect,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stats error: {str(e)}")
