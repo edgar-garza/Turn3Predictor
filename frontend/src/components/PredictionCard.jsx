@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import VoteBar from './VoteBar'
+import { useState, useEffect, useRef } from 'react'
+import html2canvas from 'html2canvas'
+import ShareCard from './ShareCard'
 import CommentsSection from './CommentsSection'
+import { getVotes, castVote } from '../api'
 
 // T-028 — mobile-responsive podium card
 // T-030 — share button
@@ -55,42 +57,126 @@ function PodiumSlot({ position, driver }) {
   )
 }
 
-function ShareButton({ prediction }) {
-  const [copied, setCopied] = useState(false)
+function ShareButton({ prediction, shareCardRef }) {
+  const [state, setState] = useState('idle') // idle | generating | done
 
-  function handleShare() {
-    const { race, podium, confidence } = prediction
-    const text =
-      `🏎️ ${race} Prediction\n` +
-      `P1 ${podium.P1.driver} (${podium.P1.constructor})\n` +
-      `P2 ${podium.P2.driver} (${podium.P2.constructor})\n` +
-      `P3 ${podium.P3.driver} (${podium.P3.constructor})\n` +
-      `Confidence: ${confidence}/10\n` +
-      `— Turn 3 F1 Predictor`
-
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+  async function handleShare() {
+    if (state !== 'idle') return
+    setState('generating')
+    try {
+      const canvas = await html2canvas(shareCardRef.current, {
+        backgroundColor: '#0a0a0a',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      })
+      const link = document.createElement('a')
+      link.download = `turn3-prediction-${prediction.race.replace(/\s+/g, '-').toLowerCase()}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+      setState('done')
+      setTimeout(() => setState('idle'), 2500)
+    } catch {
+      setState('idle')
+    }
   }
 
   return (
     <button
       onClick={handleShare}
+      disabled={state === 'generating'}
       className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-lg border transition ${
-        copied
+        state === 'done'
           ? 'border-green-500/40 text-green-400 bg-green-500/10'
+          : state === 'generating'
+          ? 'border-white/10 text-white/30 cursor-wait'
           : 'border-white/15 text-white/50 hover:text-white hover:border-white/30'
       }`}
       style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
     >
-      {copied ? '✓ Copied' : '↗ Share'}
+      {state === 'done' ? '✓ Saved' : state === 'generating' ? '...' : '↗ Share'}
     </button>
+  )
+}
+
+function VoteBar({ votes, onVote, loading }) {
+  const [casting, setCasting] = useState(false)
+  const total = votes.agree + votes.disagree
+  const agreePct = total > 0 ? Math.round((votes.agree / total) * 100) : 50
+
+  async function handleVote(vote) {
+    if (casting) return
+    setCasting(true)
+    await onVote(vote)
+    setCasting(false)
+  }
+
+  return (
+    <div className="mt-6 pt-6 border-t border-white/10">
+      <p className="text-xs uppercase tracking-widest text-white/40 mb-3">
+        Do you agree with this prediction?
+      </p>
+      <div className="flex gap-3 mb-4">
+        <button
+          onClick={() => handleVote('agree')}
+          disabled={casting || loading}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold tracking-wide transition-all ${
+            votes.user_vote === 'agree'
+              ? 'bg-green-500 text-white'
+              : 'bg-white/5 text-white/60 hover:bg-green-500/20 hover:text-green-400'
+          }`}
+        >
+          👍 Agree {votes.agree > 0 && `(${votes.agree})`}
+        </button>
+        <button
+          onClick={() => handleVote('disagree')}
+          disabled={casting || loading}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold tracking-wide transition-all ${
+            votes.user_vote === 'disagree'
+              ? 'bg-red-500 text-white'
+              : 'bg-white/5 text-white/60 hover:bg-red-500/20 hover:text-red-400'
+          }`}
+        >
+          👎 Disagree {votes.disagree > 0 && `(${votes.disagree})`}
+        </button>
+      </div>
+      {total > 0 && (
+        <div className="space-y-1">
+          <div className="flex h-1.5 rounded-full overflow-hidden bg-white/10">
+            <div className="bg-green-500 transition-all duration-500" style={{ width: `${agreePct}%` }} />
+            <div className="bg-red-500 transition-all duration-500" style={{ width: `${100 - agreePct}%` }} />
+          </div>
+          <p className="text-xs text-white/30 text-center">
+            {agreePct}% agree · {total} {total === 1 ? 'vote' : 'votes'}
+          </p>
+        </div>
+      )}
+    </div>
   )
 }
 
 export default function PredictionCard({ prediction, circuitId }) {
   const { race, podium, confidence, reasoning, weather } = prediction
+  const shareCardRef = useRef(null)
+
+  const [votes, setVotes] = useState({ agree: 0, disagree: 0, user_vote: null })
+  const [votesLoading, setVotesLoading] = useState(true)
+
+  useEffect(() => {
+    if (!circuitId) return
+    getVotes(circuitId)
+      .then(setVotes)
+      .catch(() => {})
+      .finally(() => setVotesLoading(false))
+  }, [circuitId])
+
+  async function handleVote(vote) {
+    if (!circuitId) return
+    try {
+      const updated = await castVote(circuitId, vote)
+      setVotes(updated)
+    } catch {}
+  }
 
   return (
     <div className="w-full max-w-xl flex flex-col gap-4 animate-[fadeIn_0.4s_ease]">
@@ -136,11 +222,19 @@ export default function PredictionCard({ prediction, circuitId }) {
 
       {/* Actions */}
       <div className="flex justify-end">
-        <ShareButton prediction={prediction} />
+        <ShareButton prediction={prediction} shareCardRef={shareCardRef} />
       </div>
 
-      {circuitId && <VoteBar circuitId={circuitId} />}
+      {/* Vote bar */}
+      {circuitId && (
+        <VoteBar votes={votes} onVote={handleVote} loading={votesLoading} />
+      )}
+
+      {/* Comments */}
       {circuitId && <CommentsSection circuitId={circuitId} />}
+
+      {/* Hidden share card — captured by html2canvas */}
+      <ShareCard ref={shareCardRef} prediction={prediction} votes={votes} />
     </div>
   )
 }
