@@ -66,6 +66,7 @@ function ShareButton({ prediction, shareCardRef }) {
     try {
       const el = shareCardRef.current
       el.style.visibility = 'visible'
+      await document.fonts.ready
       await new Promise(r => setTimeout(r, 50))
       const canvas = await html2canvas(el, {
         backgroundColor: '#0a0a0a',
