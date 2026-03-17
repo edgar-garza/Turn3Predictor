@@ -50,7 +50,7 @@ const ShareCard = forwardRef(function ShareCard({ prediction, votes }, ref) {
         padding: '44px 40px 36px',
         fontFamily: "'Barlow Condensed', sans-serif",
         color: '#ffffff',
-        position: 'fixed',
+        position: 'absolute',
         left: '0',
         top: '0',
         visibility: 'hidden',
