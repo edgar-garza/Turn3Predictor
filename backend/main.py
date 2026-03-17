@@ -172,7 +172,7 @@ async def predict(
     except Exception as e:
         print(f"[db] Failed to log prediction: {e}")
 
-    return prediction
+    return {**prediction, "_round_count": round_count}
 
 
 @app.get("/debug/cache/{circuit_id}")
