@@ -6,6 +6,7 @@ import LoadingSpinner from './components/LoadingSpinner'
 import PredictionCard from './components/PredictionCard'
 import ErrorCard from './components/ErrorCard'
 import StatsBar from './components/StatsBar'
+import PageFiller from './components/PageFiller'
 import HistoryPage from './pages/HistoryPage'
 import './App.css'
 
@@ -75,13 +76,12 @@ export default function App() {
           <>
             <div className="text-center max-w-xl flex flex-col items-center gap-4">
               {/* Hero logo */}
-              <div className="bg-white rounded-xl px-6 py-4 inline-block">
-                <img
-                  src="/Turn3LogoPNG.png"
-                  alt="Turn 3 Podcast"
-                  className="h-14 sm:h-20 w-auto object-contain"
-                />
-              </div>
+              <img
+                src="/Turn3LogoPNG.png"
+                alt="Turn 3 Podcast"
+                className="h-16 sm:h-24 w-auto block"
+                style={{ filter: 'brightness(0) invert(1)' }}
+              />
 
               {/* Headline */}
               <div>
@@ -103,6 +103,7 @@ export default function App() {
             {loading && <LoadingSpinner race={currentRace} />}
             {error && <ErrorCard message={error} onRetry={handleRetry} />}
             {prediction && !loading && <PredictionCard prediction={prediction} />}
+            {!prediction && !loading && !error && <PageFiller />}
           </>
         )}
 
@@ -110,9 +111,12 @@ export default function App() {
       </main>
 
       <footer className="border-t border-white/10 px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="bg-white rounded-md px-2.5 py-1">
-          <img src="/Turn3LogoPNG.png" alt="Turn 3 Podcast" className="h-5 w-auto object-contain" />
-        </div>
+        <img
+          src="/Turn3LogoPNG.png"
+          alt="Turn 3 Podcast"
+          className="h-5 w-auto block"
+          style={{ filter: 'brightness(0) invert(1)' }}
+        />
         <p
           className="text-white/20 text-xs uppercase tracking-widest"
           style={{ fontFamily: "'Barlow Condensed', sans-serif" }}

@@ -1,18 +1,16 @@
 export default function Header() {
   return (
     <header className="bg-[#0a0a0a] border-b border-white/10">
-      {/* Logo bar */}
       <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
-        {/* Logo on white pill */}
-        <div className="bg-white rounded-lg px-3 py-1.5 flex items-center">
-          <img
-            src="/Turn3LogoPNG.png"
-            alt="Turn 3 Podcast"
-            className="h-8 sm:h-10 w-auto object-contain"
-          />
-        </div>
+        {/* White monochrome logo — Option A */}
+        <img
+          src="/Turn3LogoPNG.png"
+          alt="Turn 3 Podcast"
+          className="h-8 sm:h-10 w-auto block"
+          style={{ filter: 'brightness(0) invert(1)' }}
+        />
 
-        {/* Right side label */}
+        {/* Right side */}
         <div className="flex items-center gap-3">
           <span
             className="text-white/50 text-xs sm:text-sm uppercase tracking-widest"
