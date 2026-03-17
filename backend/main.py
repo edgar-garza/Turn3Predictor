@@ -172,55 +172,8 @@ async def predict(
     except Exception as e:
         print(f"[db] Failed to log prediction: {e}")
 
-    return {**prediction, "_round_count": round_count}
+    return prediction
 
-
-@app.get("/debug/cache/{circuit_id}")
-def debug_cache(circuit_id: str, weather: str = "dry", season: int = 2026):
-    """Temporary debug endpoint — shows cache state and tests insert."""
-    from data import fetch_last_n_results
-    from database import get_client
-    recent = fetch_last_n_results(5)
-    round_count = len(recent)
-    cached = get_cached_prediction(circuit_id, weather, season, round_count)
-
-    # Test insert with a dummy row to surface the real error
-    insert_error = None
-    try:
-        get_client().table("predictions").insert({
-            "season": season,
-            "round": 99,
-            "race_name": "_debug_",
-            "circuit_id": "_debug_",
-            "weather": "dry",
-            "p1_driver": "x", "p1_code": "x", "p1_constructor": "x",
-            "p2_driver": "x", "p2_code": "x", "p2_constructor": "x",
-            "p3_driver": "x", "p3_code": "x", "p3_constructor": "x",
-            "confidence": 1,
-            "reasoning": "debug",
-            "round_count": round_count,
-        }).execute()
-        insert_error = "insert succeeded"
-        # Clean up
-        get_client().table("predictions").delete().eq("circuit_id", "_debug_").execute()
-    except Exception as e:
-        insert_error = str(e)
-
-    rows = (
-        get_client()
-        .table("predictions")
-        .select("circuit_id,weather,season,round_count,created_at")
-        .eq("circuit_id", circuit_id)
-        .eq("season", season)
-        .execute()
-        .data
-    )
-    return {
-        "round_count": round_count,
-        "cache_hit": cached is not None,
-        "insert_test": insert_error,
-        "db_rows": rows,
-    }
 
 
 @app.get("/history")
