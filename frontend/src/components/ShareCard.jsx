@@ -58,21 +58,24 @@ const ShareCard = forwardRef(function ShareCard({ prediction, votes }, ref) {
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+        <div style={{ flex: 1 }} />
         <canvas
           ref={logoCanvasRef}
-          style={{ height: '36px', width: 'auto' }}
+          style={{ height: '52px', width: 'auto' }}
         />
-        <div style={{
-          background: confidenceColor + '22',
-          border: `1px solid ${confidenceColor}66`,
-          borderRadius: '999px',
-          padding: '4px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-        }}>
-          <span style={{ color: confidenceColor, fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase' }}>Confidence</span>
-          <span style={{ color: confidenceColor, fontSize: '20px', fontWeight: 900 }}>{confidence}/10</span>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{
+            background: confidenceColor + '22',
+            border: `1px solid ${confidenceColor}66`,
+            borderRadius: '999px',
+            padding: '4px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}>
+            <span style={{ color: confidenceColor, fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase' }}>Confidence</span>
+            <span style={{ color: confidenceColor, fontSize: '20px', fontWeight: 900 }}>{confidence}/10</span>
+          </div>
         </div>
       </div>
 
@@ -99,7 +102,7 @@ const ShareCard = forwardRef(function ShareCard({ prediction, votes }, ref) {
               background: c.bg + '55',
               border: `1px solid ${c.border}66`,
               borderRadius: '12px',
-              padding: '14px 18px',
+              padding: '10px 18px',
             }}>
               <span style={{ color: c.label, fontSize: '26px', fontWeight: 900, width: '36px', textAlign: 'center', flexShrink: 0 }}>{pos}</span>
               <div style={{ flex: 1 }}>
