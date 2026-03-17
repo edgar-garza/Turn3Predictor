@@ -80,11 +80,15 @@ def get_recent_results(n: int = Query(default=5, ge=1, le=10)):
 
 
 @app.get("/predict/{circuit_id}")
-def predict(circuit_id: str):
+def predict(
+    circuit_id: str,
+    weather: str = Query(default="dry", pattern="^(dry|wet|mixed)$"),
+):
     """
     T-018 — Generate an AI race prediction for the given circuit.
 
-    circuit_id: Jolpica circuit ID (e.g. albert_park, monaco, bahrain)
+    circuit_id : Jolpica circuit ID (e.g. albert_park, monaco, bahrain)
+    weather    : Expected race conditions — dry | wet | mixed  (T-036)
     """
     # 1. Fetch all context data
     try:
@@ -110,7 +114,8 @@ def predict(circuit_id: str):
     # 3. Build context string and call Claude
     context = build_prediction_context(
         standings, constructor_standings, recent_results,
-        circuit_history, circuit_driver_results, race_info
+        circuit_history, circuit_driver_results, race_info,
+        weather=weather,
     )
 
     try:

@@ -6,8 +6,8 @@ export async function getSchedule() {
   return res.json()
 }
 
-export async function getPrediction(circuitId) {
-  const res = await fetch(`${BASE_URL}/predict/${circuitId}`)
+export async function getPrediction(circuitId, weather = 'dry') {
+  const res = await fetch(`${BASE_URL}/predict/${circuitId}?weather=${weather}`)
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.detail || 'Prediction failed')

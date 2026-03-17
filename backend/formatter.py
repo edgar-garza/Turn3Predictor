@@ -106,6 +106,16 @@ def format_circuit_driver_results(circuit_results: list[dict], circuit: str) -> 
     return "\n".join(lines)
 
 
+def format_weather(weather: str) -> str:
+    """T-036 — weather context."""
+    descriptions = {
+        "dry":   "DRY — clear/sunny conditions expected. Standard tyre strategy likely.",
+        "wet":   "WET — rain expected. Full wets or intermediates in play. Chaos factor high.",
+        "mixed": "MIXED — changing conditions expected. Strategy and adaptability will be key.",
+    }
+    return f"EXPECTED CONDITIONS: {descriptions.get(weather, weather.upper())}"
+
+
 def build_prediction_context(
     standings: list[dict],
     constructor_standings: list[dict],
@@ -113,9 +123,12 @@ def build_prediction_context(
     circuit_history: list[dict],
     circuit_driver_results: list[dict],
     race_info: dict,
+    weather: str = "dry",
 ) -> str:
     sections = [
         format_race_info(race_info),
+        "",
+        format_weather(weather),
         "",
         format_standings(standings),
         "",
