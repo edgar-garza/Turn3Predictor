@@ -30,7 +30,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://localhost:\d+|https://.*\.vercel\.app|https://turn3predictor\.com",
+    allow_origin_regex=r"http://localhost:\d+|https://.*\.vercel\.app|https://turn3predictor\.com|https://turn3\.online|https://www\.turn3\.online",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -341,7 +341,7 @@ export async function generateShareCard(prediction, votes) {
   ctx.font = '11px Arial, sans-serif'
   ctx.fillStyle = 'rgba(255,255,255,0.25)'
   ctx.textAlign = 'right'
-  ctx.fillText('turn3-predictor.vercel.app', W - PH, y)
+  ctx.fillText('turn3.online', W - PH, y)
 
   return canvas.toDataURL('image/png')
 }
